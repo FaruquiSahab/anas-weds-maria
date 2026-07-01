@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, memo } from "react";
+import Image from "next/image";
 
-/* ─── IMAGE BASE ─── */
-// Images are hosted on the Netlify site. When you copy images to /public/images/,
-// change this to "" to use local paths instead.
-const IMG_BASE = "https://anas-weds-maria.netlify.app";
+/* ─── IMAGE PATHS (same-origin for fast loads) ─── */
+const img = (path) => path;
 
 /* ─── CONSTANTS ─── */
 const C = {
@@ -43,7 +42,7 @@ const EVENTS = [
     venue: "Grand Hayat Luxury Banquet",
     addr: "Johar Hill Rd, Block 1 Gulistan-e-Johar, Karachi",
     accent: C.accent,
-    photo: IMG_BASE + "/images/grand-hayat-front.webp",
+    photo: img("/images/grand-hayat-front.webp"),
     side: "bride",
   },
   {
@@ -56,7 +55,7 @@ const EVENTS = [
     venue: "Bella Vista Banquet",
     addr: "Block 14, Gulistan-e-Johar, Karachi",
     accent: C.rose,
-    photo: IMG_BASE + "/images/event-barat.jpg",
+    photo: img("/images/event-barat.jpg"),
     side: "bride",
   },
   {
@@ -76,11 +75,11 @@ const EVENTS = [
 ];
 
 const GAL = [
-  { src: IMG_BASE + "/images/gallery-1.jpg", label: "Bride Entry" },
-  { src: IMG_BASE + "/images/gallery-3.jpg", label: "Groom Nikah" },
-  { src: IMG_BASE + "/images/gallery-4.jpg", label: "Bride Nikah" },
-  { src: IMG_BASE + "/images/gallery-7.jpg", label: "Party", pos: "22% center" },
-  { src: IMG_BASE + "/images/gallery-6.jpg", label: "Qawali Night" },
+  { src: img("/images/gallery-1.jpg"), label: "Bride Entry" },
+  { src: img("/images/gallery-3.jpg"), label: "Groom Nikah" },
+  { src: img("/images/gallery-4.jpg"), label: "Bride Nikah" },
+  { src: img("/images/gallery-7.jpg"), label: "Party", pos: "22% center" },
+  { src: img("/images/gallery-6.jpg"), label: "Qawali Night" },
 ];
 
 const SCHED = [
@@ -187,20 +186,26 @@ function ScaleIn({ delay = 0, children }) {
 function Particles() {
   const [items, setItems] = useState([]);
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const narrow = window.matchMedia("(max-width: 640px)").matches;
+    const count = narrow ? 5 : 8;
     const arr = [];
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < count; i++) {
       arr.push({
         id: i,
         left: Math.random() * 100 + "%",
         animationDelay: Math.random() * 12 + "s",
         animationDuration: 10 + Math.random() * 8 + "s",
-        width: 4 + Math.random() * 6,
-        height: 4 + Math.random() * 6,
-        opacity: 0.06 + Math.random() * 0.1,
+        width: 4 + Math.random() * 5,
+        height: 4 + Math.random() * 5,
+        opacity: 0.06 + Math.random() * 0.08,
       });
     }
     setItems(arr);
   }, []);
+
+  if (!items.length) return null;
+
   return (
     <div className="particles">
       {items.map((p) => (
@@ -256,7 +261,7 @@ function SH({ overline, title, subtitle, light = false }) {
 }
 
 /* ─── VALIMA VENUE SVG ART ─── */
-function ValimaArt() {
+const ValimaArt = memo(function ValimaArt() {
   const stars = [
     { x: 50, y: 25 }, { x: 120, y: 45 }, { x: 200, y: 18 }, { x: 320, y: 35 },
     { x: 430, y: 20 }, { x: 520, y: 40 }, { x: 560, y: 60 }, { x: 80, y: 65 },
@@ -266,20 +271,25 @@ function ValimaArt() {
   const flowerPetals = [0, 60, 120, 180, 240, 300];
   const flowerL = [{ cx: 140, cy: 175 }, { cx: 160, cy: 168 }];
   const flowerR = [{ cx: 460, cy: 175 }, { cx: 440, cy: 168 }];
-  const trail = [];
-  for (let i = 0; i < 18; i++) {
-    trail.push({
-      x: 100 + i * 24,
-      y: 260 + Math.sin(i * 0.8) * 5,
-      r: 2 + Math.random() * 2,
-      c: i % 3 ? C.accent : "#d4849a",
-      o: 0.2 + Math.random() * 0.2,
-    });
-  }
-  const lights = [];
-  for (let j = 0; j < 20; j++) {
-    lights.push({ x: 80 + j * 24, y: 56 + Math.sin(j * 0.6) * 6 });
-  }
+  const trail = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, i) => ({
+        x: 100 + i * 24,
+        y: 260 + Math.sin(i * 0.8) * 5,
+        r: 2 + (i % 3) * 0.8,
+        c: i % 3 ? "#c9a84c" : "#d4849a",
+        o: 0.2 + (i % 4) * 0.05,
+      })),
+    []
+  );
+  const lights = useMemo(
+    () =>
+      Array.from({ length: 20 }, (_, j) => ({
+        x: 80 + j * 24,
+        y: 56 + Math.sin(j * 0.6) * 6,
+      })),
+    []
+  );
 
   return (
     <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%", display: "block" }}>
@@ -375,7 +385,7 @@ function ValimaArt() {
       </text>
     </svg>
   );
-}
+});
 
 /* ─── ENVELOPE ─── */
 function Envelope({ onOpen }) {
@@ -405,8 +415,15 @@ function Hero() {
   return (
     <section className="hero">
       <div className="hero-iw">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={IMG_BASE + "/images/cover-image.jpeg"} alt="Anas and Maria" className="hero-img" />
+        <Image
+          src={img("/images/cover-image.jpeg")}
+          alt="Anas and Maria"
+          className="hero-img"
+          fill
+          priority
+          sizes="100vw"
+          quality={80}
+        />
       </div>
       <div className="hero-o1" />
       <div className="hero-o2" />
@@ -492,8 +509,15 @@ function EvCard({ ev, i }) {
       <div className={"ev-c" + (ours ? " ev-f" : "")}>
         <div className="ev-pw">
           {ev.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={ev.photo} alt={ev.title} className="ev-ph" loading="lazy" />
+            <Image
+              src={ev.photo}
+              alt={ev.title}
+              className="ev-ph"
+              fill
+              sizes="(max-width: 640px) 75vw, 300px"
+              loading="lazy"
+              quality={75}
+            />
           ) : (
             <ValimaArt />
           )}
@@ -566,7 +590,7 @@ function GallerySection() {
       <ScaleIn>
         <div className="gal-board">
           <div className="gal-pat" />
-          {GAL.map((img, i) => {
+          {GAL.map((imgItem, i) => {
             const p = GP[i];
             return (
               <div
@@ -581,16 +605,18 @@ function GallerySection() {
                 }}
               >
                 <div className="pol-iw">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.src}
-                    alt={img.label}
+                  <Image
+                    src={imgItem.src}
+                    alt={imgItem.label}
                     className="pol-img"
-                    style={{ objectPosition: img.pos || "center" }}
+                    fill
+                    sizes="(max-width: 520px) 44vw, 150px"
                     loading="lazy"
+                    quality={70}
+                    style={{ objectPosition: imgItem.pos || "center" }}
                   />
                 </div>
-                <p className="pol-lbl">{img.label}</p>
+                <p className="pol-lbl">{imgItem.label}</p>
               </div>
             );
           })}
@@ -599,8 +625,16 @@ function GallerySection() {
       {sel !== null && (
         <div className="lb" onClick={() => setSel(null)}>
           <div className="lb-in" onClick={(e) => e.stopPropagation()}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={GAL[sel].src} alt={GAL[sel].label} className="lb-img" />
+            <Image
+              src={GAL[sel].src}
+              alt={GAL[sel].label}
+              className="lb-img"
+              width={560}
+              height={700}
+              sizes="92vw"
+              quality={85}
+              style={{ width: "100%", height: "auto" }}
+            />
             <p className="lb-lbl">{GAL[sel].label}</p>
             <button className="lb-x" onClick={() => setSel(null)}>
               &#10005;
@@ -614,6 +648,7 @@ function GallerySection() {
 
 /* ─── VENUE ─── */
 function Venue() {
+  const [mapRef, mapVis] = useInView(0.05);
   return (
     <section className="ven-sec">
       <SH overline="Find Us" title="The Venue" subtitle="The Valima will be held here." light />
@@ -624,16 +659,18 @@ function Venue() {
             <div className="ven-art-ov" />
             <h3 className="ven-art-t">Parsa Banquet</h3>
           </div>
-          <div className="ven-map">
-            <iframe
-              src={MAP_URL}
-              width="100%"
-              height="100%"
-              style={{ border: "none", display: "block" }}
-              loading="lazy"
-              title="Venue"
-              allowFullScreen
-            />
+          <div ref={mapRef} className="ven-map">
+            {mapVis && (
+              <iframe
+                src={MAP_URL}
+                width="100%"
+                height="100%"
+                style={{ border: "none", display: "block" }}
+                loading="lazy"
+                title="Venue"
+                allowFullScreen
+              />
+            )}
           </div>
           <div className="ven-info">
             <p className="ven-addr">C, 78, Block 14, Gulistan-e-Johar, Karachi</p>
@@ -750,11 +787,14 @@ export default function Home() {
     setExiting(true);
     setTimeout(() => {
       setOpened(true);
-      // Start first song
-      if (audio1Ref.current) {
-        audio1Ref.current.currentTime = 49;
-        audio1Ref.current.volume = 0.45;
-        audio1Ref.current.play().catch(() => {});
+      const a1 = audio1Ref.current;
+      const a2 = audio2Ref.current;
+      if (a1) a1.load();
+      if (a2) a2.load();
+      if (a1) {
+        a1.currentTime = 49;
+        a1.volume = 0.45;
+        a1.play().catch(() => {});
         setPlaying(true);
         setSongIdx(0);
       }
@@ -809,8 +849,8 @@ export default function Home() {
   return (
     <div>
       {/* ── AUDIO ELEMENTS ── */}
-      <audio ref={audio1Ref} src="/audio/o-maahi.mp3" preload="auto" />
-      <audio ref={audio2Ref} src="/audio/satranga.mp3" preload="auto" />
+      <audio ref={audio1Ref} src="/audio/o-maahi.mp3" preload="none" />
+      <audio ref={audio2Ref} src="/audio/satranga.mp3" preload="none" />
 
       {/* ── ENVELOPE ── */}
       {!opened && (

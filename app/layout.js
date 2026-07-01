@@ -3,18 +3,19 @@ import "./globals.css";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  weight: ["400", "600"],
   variable: "--font-playfair",
   display: "swap",
+  preload: true,
 });
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "600"],
   style: ["normal", "italic"],
   variable: "--font-cormorant",
   display: "swap",
+  preload: false,
 });
 
 const greatVibes = Great_Vibes({
@@ -26,9 +27,10 @@ const greatVibes = Great_Vibes({
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400"],
   variable: "--font-body",
   display: "swap",
+  preload: true,
 });
 
 export const metadata = {
@@ -61,7 +63,7 @@ export const metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  viewportFit: "cover",
   themeColor: "#c41e3a",
 };
 
