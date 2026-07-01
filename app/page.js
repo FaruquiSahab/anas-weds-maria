@@ -3,8 +3,13 @@
 import { useState, useEffect, useRef, useMemo, memo } from "react";
 import Image from "next/image";
 
-/* ─── IMAGE PATHS (same-origin for fast loads) ─── */
-const img = (path) => path;
+/* ─── IMAGE BASE ─── */
+// Images live on the deployed site (not in git). Use env on Netlify, else production URL.
+const IMG_BASE = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://anas-weds-maria.netlify.app"
+).replace(/\/$/, "");
+
+const img = (path) => IMG_BASE + path;
 
 /* ─── CONSTANTS ─── */
 const C = {
