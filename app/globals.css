@@ -323,7 +323,8 @@ img {
 .hero {
   position: relative;
   height: 100svh;
-  min-height: 580px;
+  min-height: 520px;
+  max-height: 960px;
   width: 100%;
   overflow: hidden;
 }
@@ -335,25 +336,36 @@ img {
 
 .hero-img {
   object-fit: cover;
-  object-position: center;
+  object-position: center 38%;
 }
 
 .hero-o1 {
   position: absolute;
   inset: 0;
-  background: #0f2b3350;
+  background: #0f2b3340;
 }
 
 .hero-o2 {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, #0a1a1f, #0f2b3388, #0f2b3340);
+  background: linear-gradient(
+    to top,
+    #0a1a1f 0%,
+    #0f2b33aa 28%,
+    #0f2b3355 52%,
+    transparent 78%
+  );
 }
 
 .hero-o3 {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, #0a1a1f80, transparent, transparent);
+  background: linear-gradient(
+    to bottom,
+    #0a1a1f99 0%,
+    #0a1a1f55 18%,
+    transparent 42%
+  );
 }
 
 .hero-fade {
@@ -361,7 +373,7 @@ img {
   bottom: 0;
   left: 0;
   right: 0;
-  height: clamp(60px, 15vw, 96px);
+  height: clamp(80px, 18vw, 120px);
   background: linear-gradient(transparent, #faf8f2);
 }
 
@@ -1150,7 +1162,11 @@ img {
 
 @media (min-width: 640px) {
   .hero {
-    min-height: 700px;
+    min-height: 680px;
+    max-height: none;
+  }
+  .hero-img {
+    object-position: center 42%;
   }
   .ev-scroll {
     display: grid;
@@ -1185,7 +1201,11 @@ img {
 
 @media (max-width: 360px) {
   .hero {
-    min-height: 540px;
+    min-height: 500px;
+    max-height: 820px;
+  }
+  .hero-img {
+    object-position: center 32%;
   }
   .bism {
     font-size: 16px;

@@ -140,6 +140,14 @@ function ensureAudioReady(audio) {
   });
 }
 
+function randomClipMs() {
+  return 30000 + Math.random() * 15000;
+}
+
+function randomSongIndex() {
+  return Math.floor(Math.random() * SONGS.length);
+}
+
 /* ─── HOOKS ─── */
 function useCountdown(target) {
   const [time, setTime] = useState(null);
@@ -448,13 +456,13 @@ function Hero() {
     <section className="hero">
       <div className="hero-iw">
         <Image
-          src={img("/images/cover-image.jpeg")}
+          src="/images/cover-image.png"
           alt="Anas and Maria"
           className="hero-img"
           fill
           priority
           sizes="100vw"
-          quality={80}
+          quality={85}
         />
       </div>
       <div className="hero-o1" />
@@ -815,8 +823,26 @@ export default function Home() {
   const audio1Ref = useRef(null);
   const audio2Ref = useRef(null);
   const playSongRef = useRef(null);
+  const switchTimerRef = useRef(null);
+  const pausedByUserRef = useRef(false);
 
   const getAudios = () => [audio1Ref.current, audio2Ref.current];
+
+  const clearSwitchTimer = () => {
+    if (switchTimerRef.current) {
+      clearTimeout(switchTimerRef.current);
+      switchTimerRef.current = null;
+    }
+  };
+
+  const scheduleSwitch = (currentIndex) => {
+    clearSwitchTimer();
+    switchTimerRef.current = setTimeout(() => {
+      if (pausedByUserRef.current) return;
+      const nextIndex = currentIndex === 0 ? 1 : 0;
+      playSongRef.current?.(nextIndex, { fromStart: true });
+    }, randomClipMs());
+  };
 
   playSongRef.current = async (index, { fromStart = true } = {}) => {
     const [a1, a2] = getAudios();
@@ -826,6 +852,7 @@ export default function Home() {
     const other = index === 0 ? a2 : a1;
     const { startAt } = SONGS[index];
 
+    clearSwitchTimer();
     other.pause();
 
     try {
@@ -840,11 +867,14 @@ export default function Home() {
       setPlaying(true);
       setSongIdx(index);
 
-      // Preload next song so alternate play is instant
-      const next = index === 0 ? a2 : a1;
-      ensureAudioReady(next).catch(() => {});
+      if (!pausedByUserRef.current) {
+        scheduleSwitch(index);
+      }
+
+      ensureAudioReady(other).catch(() => {});
     } catch {
       setPlaying(false);
+      clearSwitchTimer();
     }
   };
 
@@ -852,40 +882,29 @@ export default function Home() {
     setExiting(true);
     setTimeout(() => {
       setOpened(true);
-      playSongRef.current?.(0, { fromStart: true });
+      pausedByUserRef.current = false;
+      playSongRef.current?.(randomSongIndex(), { fromStart: true });
     }, 700);
   }
 
   useEffect(() => {
-    const [a1, a2] = getAudios();
-    if (!a1 || !a2) return;
-
-    function onEnd1() {
-      playSongRef.current?.(1, { fromStart: true });
-    }
-    function onEnd2() {
-      playSongRef.current?.(0, { fromStart: true });
-    }
-
-    a1.addEventListener("ended", onEnd1);
-    a2.addEventListener("ended", onEnd2);
-    return () => {
-      a1.removeEventListener("ended", onEnd1);
-      a2.removeEventListener("ended", onEnd2);
-    };
-  }, [opened]);
+    return () => clearSwitchTimer();
+  }, []);
 
   function toggleMusic() {
     const [a1, a2] = getAudios();
     if (!a1 || !a2) return;
 
     if (playing) {
+      pausedByUserRef.current = true;
+      clearSwitchTimer();
       a1.pause();
       a2.pause();
       setPlaying(false);
       return;
     }
 
+    pausedByUserRef.current = false;
     playSongRef.current?.(songIdx, { fromStart: false });
   }
 
