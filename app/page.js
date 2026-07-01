@@ -113,6 +113,33 @@ const CONTACTS = [
 const MAP_URL =
   "https://maps.google.com/maps?q=Parsa+Banquet+Block+14+Gulistan+e+Johar+Karachi&z=16&output=embed";
 
+/* ─── MUSIC ─── */
+const SONGS = [
+  { src: "/audio/o-maahi.mp3", label: "O Maahi", startAt: 49 },
+  { src: "/audio/satranga.mp3", label: "Satranga", startAt: 48 },
+];
+
+function ensureAudioReady(audio) {
+  if (audio.readyState >= 1) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error("Audio failed to load"));
+    };
+    const cleanup = () => {
+      audio.removeEventListener("loadedmetadata", onReady);
+      audio.removeEventListener("error", onError);
+    };
+    audio.addEventListener("loadedmetadata", onReady);
+    audio.addEventListener("error", onError);
+    audio.load();
+  });
+}
+
 /* ─── HOOKS ─── */
 function useCountdown(target) {
   const [time, setTime] = useState(null);
@@ -767,11 +794,11 @@ function MusicBtn({ playing, onToggle, songIndex }) {
       onClick={onToggle}
       className={"mus" + (playing ? " mus-on" : "")}
       aria-label={playing ? "Pause" : "Play"}
-      title={playing ? "Now playing: " + (songIndex === 0 ? "O Maahi" : "Satranga") : "Play music"}
+      title={playing ? "Now playing: " + SONGS[songIndex].label : "Play music"}
     >
       <span className="mus-icon">{playing ? "\u266B" : "\u266A"}</span>
       {playing && (
-        <span className="mus-label">{songIndex === 0 ? "O Maahi" : "Satranga"}</span>
+        <span className="mus-label">{SONGS[songIndex].label}</span>
       )}
     </button>
   );
@@ -787,41 +814,57 @@ export default function Home() {
   const [songIdx, setSongIdx] = useState(0);
   const audio1Ref = useRef(null);
   const audio2Ref = useRef(null);
+  const playSongRef = useRef(null);
+
+  const getAudios = () => [audio1Ref.current, audio2Ref.current];
+
+  playSongRef.current = async (index, { fromStart = true } = {}) => {
+    const [a1, a2] = getAudios();
+    if (!a1 || !a2) return;
+
+    const current = index === 0 ? a1 : a2;
+    const other = index === 0 ? a2 : a1;
+    const { startAt } = SONGS[index];
+
+    other.pause();
+
+    try {
+      await ensureAudioReady(current);
+      current.volume = 0.45;
+
+      if (fromStart || current.ended || current.currentTime < startAt) {
+        current.currentTime = startAt;
+      }
+
+      await current.play();
+      setPlaying(true);
+      setSongIdx(index);
+
+      // Preload next song so alternate play is instant
+      const next = index === 0 ? a2 : a1;
+      ensureAudioReady(next).catch(() => {});
+    } catch {
+      setPlaying(false);
+    }
+  };
 
   function handleOpen() {
     setExiting(true);
     setTimeout(() => {
       setOpened(true);
-      const a1 = audio1Ref.current;
-      const a2 = audio2Ref.current;
-      if (a1) a1.load();
-      if (a2) a2.load();
-      if (a1) {
-        a1.currentTime = 49;
-        a1.volume = 0.45;
-        a1.play().catch(() => {});
-        setPlaying(true);
-        setSongIdx(0);
-      }
+      playSongRef.current?.(0, { fromStart: true });
     }, 700);
   }
 
   useEffect(() => {
-    const a1 = audio1Ref.current;
-    const a2 = audio2Ref.current;
+    const [a1, a2] = getAudios();
     if (!a1 || !a2) return;
 
     function onEnd1() {
-      setSongIdx(1);
-      a2.currentTime = 48;
-      a2.volume = 0.45;
-      a2.play().catch(() => {});
+      playSongRef.current?.(1, { fromStart: true });
     }
     function onEnd2() {
-      setSongIdx(0);
-      a1.currentTime = 49;
-      a1.volume = 0.45;
-      a1.play().catch(() => {});
+      playSongRef.current?.(0, { fromStart: true });
     }
 
     a1.addEventListener("ended", onEnd1);
@@ -830,32 +873,27 @@ export default function Home() {
       a1.removeEventListener("ended", onEnd1);
       a2.removeEventListener("ended", onEnd2);
     };
-  }, []);
+  }, [opened]);
 
   function toggleMusic() {
-    const a1 = audio1Ref.current;
-    const a2 = audio2Ref.current;
+    const [a1, a2] = getAudios();
     if (!a1 || !a2) return;
 
     if (playing) {
       a1.pause();
       a2.pause();
       setPlaying(false);
-    } else {
-      const cur = songIdx === 0 ? a1 : a2;
-      const startTime = songIdx === 0 ? 49 : 48;
-      if (cur.currentTime < startTime || cur.ended) cur.currentTime = startTime;
-      cur.volume = 0.45;
-      cur.play().catch(() => {});
-      setPlaying(true);
+      return;
     }
+
+    playSongRef.current?.(songIdx, { fromStart: false });
   }
 
   return (
     <div>
       {/* ── AUDIO ELEMENTS ── */}
-      <audio ref={audio1Ref} src="/audio/o-maahi.mp3" preload="none" />
-      <audio ref={audio2Ref} src="/audio/satranga.mp3" preload="none" />
+      <audio ref={audio1Ref} src={SONGS[0].src} preload="none" />
+      <audio ref={audio2Ref} src={SONGS[1].src} preload="none" />
 
       {/* ── ENVELOPE ── */}
       {!opened && (
